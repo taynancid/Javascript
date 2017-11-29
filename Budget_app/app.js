@@ -1,15 +1,23 @@
 var budgetController = (function () {
     
-    var Expense = function (id, description, value){
+    var Expense = function (id, description, value) {
         this.id = id
         this.description = description
         this.value = value
     }
     
-    var Income = function (id, description, value){
+    var Income = function (id, description, value) {
         this.id = id
         this.description = description
         this.value = value
+    }
+    
+    var calculateTotal = function(type) {
+        var sum = 0
+        data.allItems[type].forEach(function(current){
+            sum = sum + current.value
+        })
+        data.totals[type] = sum
     }
     
     var data = {
@@ -20,7 +28,9 @@ var budgetController = (function () {
         totals: {
             exp: 0,
             inc: 0
-        }
+        },
+        budget: 0,
+        percentage: -1
     }
     
     return {
@@ -49,6 +59,29 @@ var budgetController = (function () {
             return newItem
         },
         
+        calculateBudget: function() {
+          
+            //calculate total income and expenses
+            calculateTotal('exp')
+            calculateTotal('inc')
+            
+            //calculate the budget : inc - exp
+            data.budget = data.totals.inc - data.totals.exp
+            
+            //calculate the percentage of income that we spent
+            data.percentage = Math.round((data.totals.exp / data.totals.inc) * 100)
+            
+        },
+        
+        getBudget: function() {
+            return {
+                budget: data.budget,
+                totalInc: data.totals.inc,
+                totalExp: data.totals.exp,
+                perc: data.percentage
+            }  
+        },
+        
         testing: function() {
             console.log(data)
         }
@@ -75,7 +108,7 @@ var UIController = (function (){
             return {
              type: document.querySelector(DOMstrings.inputType).value, //inc or exp
              description: document.querySelector(DOMstrings.inputDescription).value,
-             value: document.querySelector(DOMstrings.inputValue).value 
+             value: parseFloat(document.querySelector(DOMstrings.inputValue).value) 
             }
             
         },
@@ -145,6 +178,16 @@ var controller = (function (budgetController, UIController){
     }
     
    
+    var updateBudget = function() {
+        //calculate the budget
+        budgetController.calculateBudget()
+        
+        //return budget
+        var budget = budgetController.getBudget()
+        
+        //display budget
+        console.log(budget)
+    }
     
     var ctrlAddItem = function () {
         var input, newItem
@@ -152,18 +195,19 @@ var controller = (function (budgetController, UIController){
         //get input data
         input = UIController.getInput();
       
-        //add the item to budget controller
-        newItem = budgetController.addItem(input.type, input.description, input.value)
-        
-        //add the item to ui
-        UIController.addListItem(newItem, input.type)
-        
-        //clear the fields
-        UIController.clearFields()
-        
-        //calculate the budget
-        
-        //display budget
+        if(input.description !== "" && !isNaN(input.value) && input.value > 0){
+            //add the item to budget controller
+            newItem = budgetController.addItem(input.type, input.description, input.value)
+
+            //add the item to ui
+            UIController.addListItem(newItem, input.type)
+            
+            //clear the fields
+            UIController.clearFields()
+            
+            //update budget
+            updateBudget()
+        }
     }
     
     return {
